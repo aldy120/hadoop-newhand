@@ -1,0 +1,136 @@
+# .ssh/config
+Host namenode
+  HostName 10.152.14.118
+  User ubuntu
+  IdentityFile ~/.ssh/lichi-office.pem
+Host datanode1
+  HostName 10.152.14.81
+  User ubuntu
+  IdentityFile ~/.ssh/lichi-office.pem
+Host datanode2
+  HostName 10.152.14.248
+  User ubuntu
+  IdentityFile ~/.ssh/lichi-office.pem
+
+
+# about proxy
+# etc/envirinment
+export http_proxy=http://10.152.0.147:3128
+export https_proxy=http://10.152.0.147:3128
+
+# hadoop
+export JAVA_HOME=/usr
+export PATH=$PATH:$JAVA_HOME/bin
+export HADOOP_HOME=/usr/local/hadoop
+export PATH=$PATH:$HADOOP_HOME/bin
+export HADOOP_CONF_DIR=/usr/local/hadoop/etc/hadoop
+
+# source
+source .profile
+
+# $HADOOP_CONF_DIR/hadoop-env.sh
+# export JAVA_HOME=${JAVA_HOME} 應改成
+export JAVA_HOME=/usr
+
+# 設定namenode
+# $HADOOP_CONF_DIR/core-site.xml
+<configuration>
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://10.152.14.118:9000</value>
+  </property>
+</configuration>
+
+# 設定 dns (沒做)
+# /etc/hosts
+10.231.123.232 ams.sdw.com
+10.231.123.234 ams.sdw.com
+10.231.123.235 ams.sdw.com
+
+# $HADOOP_CONF_DIR/hdfs-site.xml
+<configuration>
+  <property>
+    <name>dfs.replication</name>
+    <value>3</value>
+  </property>
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>file:///usr/local/hadoop/hadoop_data/hdfs/namenode</value>
+  </property>
+</configuration>
+
+# mkdir
+sudo mkdir -p $HADOOP_HOME/hadoop_data/hdfs/namenode
+
+# 新增檔案
+# $HADOOP_CONF_DIR/master
+namenode
+
+# $HADOOP_CONF_DIR//slaves 原本的刪掉
+datanode1
+datanode2
+
+# datanode部分，每台 datanode 都要做(namenode部分上面做完了)
+
+# $HADOOP_CONF_DIR/core-site.xml
+<configuration>
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://namenode:9000</value>
+  </property>
+</configuration>
+
+# $HADOOP_CONF_DIR/hdfs-site.xml
+<configuration>
+  <property>
+    <name>dfs.replication</name>
+    <value>2</value>
+  </property>
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>file:///usr/local/hadoop/hadoop_data/hdfs/datanode</value>
+  </property>
+</configuration>
+
+# create datanode folder
+sudo mkdir -p $HADOOP_HOME/hadoop_data/hdfs/datanode
+
+
+# namenode 跟 datanode
+# change owner to us
+sudo chown -R ubuntu $HADOOP_HOME
+
+# 搞定datanode之後只要在namenode執行就可以了
+# YARN
+
+# 格式化
+hdfs namenode -format
+
+# 可以開 dfs 跟 historyserver了，開成功的話去ip:50070就會看到東西
+$HADOOP_HOME/sbin/start-dfs.sh
+$HADOOP_HOME/sbin/mr-jobhistory-daemon.sh start historyserver
+
+# jps in namenode
+17507 JobHistoryServer
+16215 NameNode
+17063 ResourceManager
+16445 SecondaryNameNode
+17550 Jps
+
+
+# jps in datanode
+11987 DataNode
+12323 Jps
+12151 NodeManager
+
+
+# 我曾經打錯core-site.xml中的字
+結果跳出namenode address dfs.namenode.servicerpc-address or dfs.namenode.rpc-address is not configured.
+
+# 試玩 hdfs
+hdfs dfs -ls
+hdfs dfs -mkdir /user
+hdfs dfs -copyFromLocal ~/my_file.txt /user
+hdfs dfs -copyFromLocal ~/my_file.txt /user/my_file2.txt
+hdfs dfs -rm /user/my_file2.txt
+hdfs dfs -rmdir /user
