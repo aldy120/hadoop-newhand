@@ -1,3 +1,4 @@
+# 請搞懂 etc/enviroment, etc/hosts
 # .ssh/config
 Host namenode
   HostName 10.152.14.118
